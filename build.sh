@@ -1,0 +1,3 @@
+echo Building...
+gcc -Wall main.cpp -lm -lportaudio -lpthread -lncurses -o paTest-`uname -m`
+echo Done!
