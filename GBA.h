@@ -18,6 +18,7 @@ void buttonPause();
 void buttonNext();
 void buttonShuffle();
 int sampleRate;
+unsigned int sdatSize;
 unsigned int songLoc;
 unsigned int songOffset;
 unsigned char numTracks;
@@ -67,6 +68,7 @@ unsigned short sseqTempo;
 unsigned short tempoFill;
 unsigned char sseqVol;
 
+unsigned char repeated;//1 if the command was repeated
 unsigned char slotChannel[16];//sample playing in this slot belongs to what channel
 unsigned char slotFree[16];//is this slot free?
 unsigned char curSlot;
@@ -84,8 +86,8 @@ signed short chPanL[16];
 signed short chPanR[16];
 signed short chVol[16];
 signed char chTranspose[16];
-int chPitchBendCur[16];
-unsigned char chPitchBend[16];
+signed int chPitchBendCur[16];
+signed char chPitchBend[16];
 unsigned char chPitchBendRange[16];
 unsigned short chSweepPitch[16];
 unsigned char chPriority[16];
@@ -109,6 +111,7 @@ unsigned long chReturnOffset[16];//offset to return to from the call
 bool chInCall[16];//track hit a call command and did not hit return yet
 bool validInst[128];
 
+bool slotWavNibble[16];//what nibble is the 4bit wave on?
 unsigned char slotAttack[16];
 unsigned short slotDecay[16];
 signed long slotSustain[16];
@@ -152,5 +155,7 @@ signed short sampleOutput[16];
 unsigned long curKeyRoot[16];
 
 signed short lastSample[2];
+
+signed char PSG[0x40];
 
 #include "GBA.cpp"
