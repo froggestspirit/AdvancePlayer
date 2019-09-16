@@ -94,8 +94,8 @@ bool NDS_begin(int songID, int sRate)
 		chDelay[i]=0;
 		chInstrument[i]=0;
 		chPan[i]=0x40;
-		chPanL[i]=0;
-		chPanR[i]=0;
+		chPanL[i]=0x40;
+		chPanR[i]=0x40;
 		chVol[i]=0x7F;
 		chTranspose[i]=0;
 		chPitchBendCur[i]=0;
@@ -303,15 +303,15 @@ char * NDS_loop(){
                                 break;
                                 case 0xBE: //Volume
                                     temp[0]=sdat[filePos++];
-                                    chVol[i]=NDS_Cnv_dB(temp[0]);
+                                    chVol[i]=temp[0];
                                     chPointer[i]+=2;
                                     lastCommand[i]=0xBE;
                                 break;
                                 case 0xBF: //Pan
                                     temp[0]=sdat[filePos++];
                                     chPan[i]=temp[0];
-                                    chPanL[i]=PAN_TABLE[temp[0]];
-                                    chPanR[i]=PAN_TABLE[127-temp[0]];
+                                    chPanL[i]=temp[0];
+                                    chPanR[i]=127-temp[0];
                                     chPointer[i]+=2;
                                     lastCommand[i]=0xBF;
                                 break;
@@ -320,7 +320,7 @@ char * NDS_loop(){
                                     chPitchBend[i]=(temp[0]);
                                     chPointer[i]+=2;
                                     chPitchBendCur[i]=((chPitchBend[i]-0x40)*(chPitchBendRange[i]<<1));
-                                    printf("Pitch:%X PitchBend:%X\n",chPitchBendCur[i],chPitchBend[i]);
+                                    
                                     //if(chPitchBend[i]>0x40) chPitchBendCur[i]=((chPitchBend[i]-0x40)*chPitchBendRange[i]);
                                     //if(chPitchBend[i]<0x40) chPitchBendCur[i]=(chPitchBend[i]*chPitchBendRange[i]);
                                     lastCommand[i]=0xC0;
@@ -330,7 +330,6 @@ char * NDS_loop(){
                                     chPitchBendRange[i]=temp[0];
                                     chPointer[i]+=2;
                                     chPitchBendCur[i]=((chPitchBend[i]-0x40)*(chPitchBendRange[i]<<1));
-                                    printf("Pitch:%X PitchRange:%X\n",chPitchBendCur[i],chPitchBendRange[i]);
                                     //if(chPitchBend[i]>128) chPitchBendCur[i]=((chPitchBend[i]-256)*chPitchBendRange[i]);
                                     //if(chPitchBend[i]<=128) chPitchBendCur[i]=(chPitchBend[i]*chPitchBendRange[i]);
                                     lastCommand[i]=0xC1;
@@ -450,7 +449,7 @@ char * NDS_loop(){
 												temp[0]=lastVel[i];
 											}
 											lastVel[i]=temp[0];
-                                            slotNoteVel[curSlot]=NDS_Cnv_dB(temp[0]);
+                                            slotNoteVel[curSlot]=temp[0];
                                             if(slotNoteLen[curSlot]>0){//Optional delta-time
 												if(sdat[filePos]<0x80){
 													slotNoteLen[curSlot]+=sdat[filePos++];
@@ -467,6 +466,7 @@ char * NDS_loop(){
 												slotKeyPointer[curSlot]=keyPointer[(chInstrument[i]<<7)];
 											}
 											//printf("%X Pitch:%X\n",i,chPitchBendCur[i]);
+											if(chTranspose[i]!=0) printf("%X Transpose:%X\n",i,chTranspose[i]);
 											if(slotInstType[curSlot]==0 || slotInstType[curSlot]==8){//Sample
 												if(slotInstType[curSlot]==0){
 													slotPitchFill[curSlot]=slotPitch[curSlot]=FREQ_TABLE[sdat[slotKeyPointer[curSlot]+1]<<7];
@@ -483,8 +483,8 @@ char * NDS_loop(){
 												slotDecay[curSlot]=sdat[slotKeyPointer[curSlot]+9];
 												slotSustain[curSlot]=sdat[slotKeyPointer[curSlot]+10];
 												slotRelease[curSlot]=sdat[slotKeyPointer[curSlot]+11];
-												slotPanL[curSlot]=max(chPanL[i]+PAN_TABLE[slotPan[curSlot]],-723);
-												slotPanR[curSlot]=max(chPanR[i]+PAN_TABLE[127-slotPan[curSlot]],-723);
+												slotPanL[curSlot]=chPanL[i];
+												slotPanR[curSlot]=chPanR[i];
 												samplePitchFill[curSlot]=sampleRate;
 												if(sdat[slotSamplePointer[curSlot]+3]==0x40){
 													sampleLoops[curSlot]=1;
@@ -511,8 +511,8 @@ char * NDS_loop(){
 												slotSustain[curSlot]=(sdat[slotKeyPointer[curSlot]+10])*0x11;
 												slotRelease[curSlot]=(7-sdat[slotKeyPointer[curSlot]+11])*0x24;
 												if(slotRelease[curSlot]==0) slotRelease[curSlot]=1;
-												slotPanL[curSlot]=max(chPanL[i]+PAN_TABLE[slotPan[curSlot]],-723);
-												slotPanR[curSlot]=max(chPanR[i]+PAN_TABLE[127-slotPan[curSlot]],-723);
+												slotPanL[curSlot]=chPanL[i];
+												slotPanR[curSlot]=chPanR[i];
 												samplePitchFill[curSlot]=sampleRate;
 												sampleLoops[curSlot]=1;
 												sampleLoop[curSlot]=0;
@@ -533,8 +533,8 @@ char * NDS_loop(){
 												slotSustain[curSlot]=(sdat[slotKeyPointer[curSlot]+10])*0x11;
 												slotRelease[curSlot]=(7-sdat[slotKeyPointer[curSlot]+11])*0x24;
 												if(slotRelease[curSlot]==0) slotRelease[curSlot]=1;
-												slotPanL[curSlot]=max(chPanL[i]+PAN_TABLE[slotPan[curSlot]],-723);
-												slotPanR[curSlot]=max(chPanR[i]+PAN_TABLE[127-slotPan[curSlot]],-723);
+												slotPanL[curSlot]=chPanL[i];
+												slotPanR[curSlot]=chPanR[i];
 												samplePitchFill[curSlot]=sampleRate;
 												sampleLoops[curSlot]=1;
 												sampleLoop[curSlot]=0;
@@ -618,8 +618,9 @@ char * NDS_loop(){
                     slotFree[i]=0;
                 break;
             }
-            volModL[i]=NDS_Cnv_Vol(fadeVol+slotNoteVel[i]+chVol[slotChannel[i]]+slotPanL[i]);
-            volModR[i]=NDS_Cnv_Vol(fadeVol+slotNoteVel[i]+chVol[slotChannel[i]]+slotPanR[i]);
+            volModL[i]=slotNoteVel[i]*chVol[slotChannel[i]]*slotPanL[i];
+            volModR[i]=slotNoteVel[i]*chVol[slotChannel[i]]*slotPanR[i];
+            //printf("volModL:%X NoteVel:%X CHVol:%X Pan:%X\n",volModL[i],slotNoteVel[i],chVol[slotChannel[i]],slotPanL[i]);
             //volModL[i]=NDS_Cnv_Vol(fadeVol+slotNoteVel[i]+(slotADSRVol[i]>>7)+chVol[slotChannel[i]]+slotPanL[i]);
             //volModR[i]=NDS_Cnv_Vol(fadeVol+slotNoteVel[i]+(slotADSRVol[i]>>7)+chVol[slotChannel[i]]+slotPanR[i]);
         }
@@ -673,15 +674,15 @@ char * NDS_loop(){
 
                 }
             }			
-            mixer[0]+=(sampleOutput[i]*(slotADSRVol[i]<<4));//*volModL[i]);//left
-            mixer[1]+=(sampleOutput[i]*(slotADSRVol[i]<<4));//*volModR[i]);//right
+            mixer[0]+=((((sampleOutput[i]*volModL[i])>>5)*slotADSRVol[i])>>4);//*volModL[i]);//left
+            mixer[1]+=((((sampleOutput[i]*volModR[i])>>5)*slotADSRVol[i])>>4);//*volModR[i]);//right
         }
     }
-    soundOut[0]=((mixer[0]) & 0xFF);
-    soundOut[1]=((mixer[0]>>8) & 0xFF);
-    soundOut[2]=((mixer[0]>>16) & 0xFF);
-    soundOut[3]=((mixer[1]) & 0xFF);
-    soundOut[4]=((mixer[1]>>8) & 0xFF);
-    soundOut[5]=((mixer[1]>>16) & 0xFF);
+    soundOut[0]=((mixer[0]>>8) & 0xFF);
+    soundOut[1]=((mixer[0]>>16) & 0xFF);
+    soundOut[2]=((mixer[0]>>24) & 0xFF);
+    soundOut[3]=((mixer[1]>>8) & 0xFF);
+    soundOut[4]=((mixer[1]>>16) & 0xFF);
+    soundOut[5]=((mixer[1]>>24) & 0xFF);
 	return soundOut;
 }

@@ -74,7 +74,7 @@ unsigned char slotFree[16];//is this slot free?
 unsigned char curSlot;
 unsigned long slotMidiFreq[16];
 unsigned char slotNote[16];
-signed short slotNoteVel[16];
+unsigned char slotNoteVel[16];
 unsigned long slotNoteLen[16];
 unsigned long slotSamplePointer[16];
 unsigned long slotKeyPointer[16];
@@ -82,9 +82,9 @@ unsigned char slotInstType[16];
 unsigned long chDelay[16];
 unsigned char chInstrument[16];
 unsigned char chPan[16];
-signed short chPanL[16];
-signed short chPanR[16];
-signed short chVol[16];
+unsigned char chPanL[16];
+unsigned char chPanR[16];
+unsigned char chVol[16];
 signed char chTranspose[16];
 signed int chPitchBendCur[16];
 signed char chPitchBend[16];
@@ -125,8 +125,8 @@ unsigned char slotADSRState[16];
 unsigned long keyPointer[0x80 * 0x80];
 unsigned long instPointer[0x80 * 0x80];
 
-signed short volModL[16];
-signed short volModR[16];
+unsigned long volModL[16];
+unsigned long volModR[16];
 int mixer[2];//pre mixer
 char soundOut[6];//final output
 bool chActive[16];//is the channel on
