@@ -46,7 +46,7 @@
 #define max(a,b) fmax(a,b)
 #include <portaudio.h>
 #define NUM_SECONDS   (40)
-#define SAMPLE_RATE   (96000)
+#define SAMPLE_RATE   (48000)
 unsigned char sdat[0x8000000];
 int filePos;
 int song;

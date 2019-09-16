@@ -99,7 +99,7 @@ bool NDS_begin(int songID, int sRate)
 		chVol[i]=0x7F;
 		chTranspose[i]=0;
 		chPitchBendCur[i]=0;
-		chPitchBend[i]=0;
+		chPitchBend[i]=0x40;
 		chPitchBendRange[i]=2;
 		chSweepPitch[i]=0;
 		chPriority[i]=0;
@@ -465,12 +465,11 @@ char * NDS_loop(){
 												slotInstType[curSlot]=sdat[keyPointer[(chInstrument[i]<<7)]];
 												slotKeyPointer[curSlot]=keyPointer[(chInstrument[i]<<7)];
 											}
-											//printf("%X Pitch:%X\n",i,chPitchBendCur[i]);
-											if(chTranspose[i]!=0) printf("%X Transpose:%X\n",i,chTranspose[i]);
+											//if(chPitchBendCur[i]!=0) printf("%X Pitch:%X\n",i,chPitchBendCur[i]);
 											if(slotInstType[curSlot]==0 || slotInstType[curSlot]==8){//Sample
 												if(slotInstType[curSlot]==0){
 													slotPitchFill[curSlot]=slotPitch[curSlot]=FREQ_TABLE[sdat[slotKeyPointer[curSlot]+1]<<7];
-												}else if(slotInstType[curSlot]==8){
+												}else{
 													slotPitch[curSlot]=FREQ_TABLE[slotMidiFreq[curSlot]];
 													slotPitchFill[curSlot]=0;
 												}
@@ -541,8 +540,11 @@ char * NDS_loop(){
 												samplePitch[curSlot]=0x20B7;
 												sampleEnd[curSlot]=16;
 												slotWavNibble[curSlot]=0;
+											}else if((slotInstType[curSlot]&7)==4){//Noise
+												sampleDone[curSlot]=true;
 											}else{
 												sampleDone[curSlot]=true;
+												printf("%X Invalid Inst Type?:%X\n",i,slotInstType[curSlot]);
 											}
 
                                         }else{

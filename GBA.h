@@ -86,7 +86,7 @@ unsigned char chPanL[16];
 unsigned char chPanR[16];
 unsigned char chVol[16];
 signed char chTranspose[16];
-signed int chPitchBendCur[16];
+signed short chPitchBendCur[16];
 signed char chPitchBend[16];
 unsigned char chPitchBendRange[16];
 unsigned short chSweepPitch[16];
