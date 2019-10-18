@@ -113,13 +113,13 @@ bool validInst[128];
 
 bool slotWavNibble[16];//what nibble is the 4bit wave on?
 unsigned char slotAttack[16];
-unsigned short slotDecay[16];
-signed long slotSustain[16];
-unsigned short slotRelease[16];
+unsigned char slotDecay[16];
+unsigned char slotSustain[16];
+unsigned char slotRelease[16];
 unsigned char slotPan[16];
-signed short slotPanL[16];
-signed short slotPanR[16];
-signed long slotADSRVol[16];
+unsigned char slotPanL[16];
+unsigned char slotPanR[16];
+unsigned char slotADSRVol[16];
 unsigned char slotADSRState[16];
 
 unsigned long keyPointer[0x80 * 0x80];

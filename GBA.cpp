@@ -233,7 +233,7 @@ char * NDS_loop(){
             if (!running) return 0;
         }
         tempoFill+=sseqTempo;
-        if(tempoFill>=150){
+        while(tempoFill>=150){
             tempoFill-=150;
             for(int i=0; i<16; i++){
                 if(chActive[i]){
@@ -622,7 +622,8 @@ char * NDS_loop(){
             }
             volModL[i]=slotNoteVel[i]*chVol[slotChannel[i]]*slotPanL[i];
             volModR[i]=slotNoteVel[i]*chVol[slotChannel[i]]*slotPanR[i];
-            //printf("volModL:%X NoteVel:%X CHVol:%X Pan:%X\n",volModL[i],slotNoteVel[i],chVol[slotChannel[i]],slotPanL[i]);
+            if(!sampleDone[i]) printf("%X:%X ATK:%X DEC:%X SUS:%X REL:%X\n",i,slotADSRVol[i],slotAttack[i],slotDecay[i],slotSustain[i],slotRelease[i]);
+            if(sampleDone[i]) printf("%X:\n",i);
             //volModL[i]=NDS_Cnv_Vol(fadeVol+slotNoteVel[i]+(slotADSRVol[i]>>7)+chVol[slotChannel[i]]+slotPanL[i]);
             //volModR[i]=NDS_Cnv_Vol(fadeVol+slotNoteVel[i]+(slotADSRVol[i]>>7)+chVol[slotChannel[i]]+slotPanR[i]);
         }
