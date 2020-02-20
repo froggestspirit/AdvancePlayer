@@ -496,7 +496,7 @@ float * NDS_loop(){
 												samplePitch[curSlot]=NDS_getAddress(slotSamplePointer[curSlot]+4);
 												samplePitch[curSlot]/=1024;
 												sampleEnd[curSlot]=float(NDS_getAddress(slotSamplePointer[curSlot]+12));
-												sampleLoopLength[curSlot]=sampleEnd[curSlot]-sampleLoop[curslot];
+												sampleLoopLength[curSlot]=sampleEnd[curSlot]-sampleLoop[curSlot];
 												slotSamplePointer[curSlot]+=16;
 											}else if((slotInstType[curSlot]&7)<3){//PSG
 												slotPitchFill[curSlot]=slotPitch[curSlot]=FREQ_TABLE[(sdat[slotKeyPointer[curSlot]+1]+12)<<7];
