@@ -1,7 +1,7 @@
 
 bool running;
 void readTemp(int bytes);
-bool NDS_begin(int songID, int sRate);
+bool NDS_begin(int songID, int sRate, bool inf);
 bool NDS_loadSong(int id);
 unsigned char NDS_Cnv_Attack(unsigned char attk);//table generated from Fincs FSS
 int NDS_Calc_Attack(unsigned char i, unsigned char frame);
@@ -10,14 +10,14 @@ int NDS_Cnv_Sust(unsigned char sust);//table generated from Fincs FSS
 int NDS_Cnv_dB(unsigned char vol);//table generated from Fincs FSS
 unsigned short NDS_Cnv_Vol(int db);
 unsigned long NDS_getAddress(unsigned long addr);
-char * NDS_loop();
+float * NDS_loop();
 bool NDS_stop();
 bool NDS_isRunning(){ return running;}
 void buttonLoop();
 void buttonPause();
 void buttonNext();
 void buttonShuffle();
-int sampleRate;
+float sampleRate;
 unsigned int sdatSize;
 unsigned int songLoc;
 unsigned int songOffset;
@@ -39,7 +39,7 @@ int maxLoops;//number of times to loop the song before fading out
 unsigned char timesLooped[16];
 signed short fadeVol;
 unsigned char loopi;
-bool infLoop=false;
+bool infLoop;
 bool paused=false;
 
 unsigned char temp[4];
@@ -112,10 +112,10 @@ bool chInCall[16];//track hit a call command and did not hit return yet
 bool validInst[128];
 
 bool slotWavNibble[16];//what nibble is the 4bit wave on?
-unsigned char slotAttack[16];
-unsigned char slotDecay[16];
-unsigned char slotSustain[16];
-unsigned char slotRelease[16];
+float slotAttack[16];
+float slotDecay[16];
+float slotSustain[16];
+float slotRelease[16];
 unsigned char slotPan[16];
 unsigned char slotPanL[16];
 unsigned char slotPanR[16];
@@ -125,22 +125,22 @@ unsigned char slotADSRState[16];
 unsigned long keyPointer[0x80 * 0x80];
 unsigned long instPointer[0x80 * 0x80];
 
-unsigned long volModL[16];
-unsigned long volModR[16];
-int mixer[2];//pre mixer
-char soundOut[6];//final output
+float volModL[16];
+float volModR[16];
+float mixer[2];//pre mixer
+float soundOut[2];//final output
 bool chActive[16];//is the channel on
-unsigned long slotPitch[16];
+float slotPitch[16];
 unsigned long slotPitchFill[16];
 unsigned short slotSampleID[16];//(channel instrument<<7)+note
 unsigned long samplePitchFill[16];
-unsigned long samplePos[16];//current position in the sample
+float samplePos[16];//current position in the sample
 
-unsigned long samplePitch[0x80*0x80];
+float samplePitch[0x80*0x80];
 unsigned long sampleOffset[0x80*0x80];//offset of the current sample
-unsigned long sampleEnd[0x80*0x80];//the end of the sample
-unsigned long sampleLoop[0x80*0x80];//loop point
-unsigned long sampleLoopLength[0x80*0x80];//length of loop point to end
+float sampleEnd[0x80*0x80];//the end of the sample
+float sampleLoop[0x80*0x80];//loop point
+float sampleLoopLength[0x80*0x80];//length of loop point to end
 unsigned char sampleFormat[0x80*0x80];//format of the sample
 bool sampleLoops[0x80*0x80];//does the sample loop
 
@@ -151,10 +151,10 @@ signed char sampleStepIndex;
 signed short sampleDiff;
 signed short samplePredictor;
 signed short sampleStep;
-signed short sampleOutput[16];
-unsigned long curKeyRoot[16];
+float sampleOutput[16];
+float curKeyRoot[16];
 
-signed short lastSample[2];
+float lastSample[2];
 
 signed char PSG[0x40];
 
