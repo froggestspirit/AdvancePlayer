@@ -1,24 +1,12 @@
 
 bool running;
-void readTemp(int bytes);
-bool NDS_begin(int songID, int sRate, bool inf);
-bool NDS_loadSong(int id);
-unsigned char NDS_Cnv_Attack(unsigned char attk);//table generated from Fincs FSS
-int NDS_Calc_Attack(unsigned char i, unsigned char frame);
-unsigned short NDS_Cnv_Fall(unsigned char fall);//table generated from Fincs FSS
-int NDS_Cnv_Sust(unsigned char sust);//table generated from Fincs FSS
-int NDS_Cnv_dB(unsigned char vol);//table generated from Fincs FSS
-unsigned short NDS_Cnv_Vol(int db);
-unsigned long NDS_getAddress(unsigned long addr);
-float * NDS_loop();
-bool NDS_stop();
-bool NDS_isRunning(){ return running;}
-void buttonLoop();
-void buttonPause();
-void buttonNext();
-void buttonShuffle();
+bool init(int songID, int sRate, bool inf);
+bool loadSong(int id);
+unsigned long read_long_from(unsigned long addr);
+float * loop();
+bool stop();
 float sampleRate;
-unsigned int sdatSize;
+unsigned int musicSize;
 unsigned int songLoc;
 unsigned int songOffset;
 unsigned char numTracks;
@@ -144,6 +132,7 @@ float sampleLoopLength[0x80*0x80];//length of loop point to end
 unsigned char sampleFormat[0x80*0x80];//format of the sample
 bool sampleLoops[0x80*0x80];//does the sample loop
 
+signed short soundChannel4Bit;
 bool sampleDone[16];//did the non-looping sample finish
 bool sampleNibbleLow;
 unsigned char tempNibble;

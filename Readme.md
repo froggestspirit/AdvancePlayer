@@ -1,4 +1,4 @@
-AdvancePlayer 0.2
+AdvancePlayer 0.3
 
 
 to build: run "sh build.sh" while in the directory. portaudio is needed.
@@ -8,6 +8,10 @@ to run: run the executable in CLI with the *.bin (ripped with AdvanceRipper) pas
 if a file is passed as an argument, the second argument will be the song number (first song if not defined). Putting any 3rd argument will trigger infinite looping.
 
 Not all GBA commands and features are implemented yet. This is based off of my SDAT player and is still a WIP.
+
+Changes in Version 0.3:
+-Some code cleanup
+-GB Noise
 
 Changes in Version 0.2:
 -General fixes and improvements

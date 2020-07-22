@@ -45,7 +45,7 @@
 #define max(a,b) fmax(a,b)
 #include <portaudio.h>
 #define SAMPLE_RATE   (48000)
-unsigned char sdat[0x8000000];
+unsigned char music[0x8000000];
 int filePos;
 int song;
 int totalSongs;
@@ -53,7 +53,7 @@ int totalSongs;
 float *DSAudio;
 float *lastDSAudio;
 char *filename;
-FILE* sdatf = NULL;
+FILE* musicFile = NULL;
 #include "GBA.h"
 
 typedef struct
@@ -81,7 +81,7 @@ static int patestCallback( const void *inputBuffer, void *outputBuffer,
 
     for( i=0; i<framesPerBuffer; i++ )
     {
-        DSAudio=NDS_loop();
+        DSAudio=loop();
         if(running){
             lastDSAudio=DSAudio;
         }else{
@@ -99,24 +99,24 @@ static float *out;
 int main(int argc, char *argv[])
 {
     song=0;
-	bool inf=false;
+    bool inf=false;
     if(argc>1){
         filename=argv[1];
     }else{
         filename="SA2.bin";
     }
     if(argc>2) song=atoi(argv[2]);
-	if(argc>3) inf=true;
+    if(argc>3) inf=true;
     PaStream *stream;
     PaError err;
-    sdatf = fopen(filename, "rb");
-	if (0!=fseek(sdatf, 0, SEEK_END)) return false;
-	int sizef=ftell(sdatf);
-	if (0!=fseek(sdatf, 0, SEEK_SET)) return false;
-	if (sizef!=fread(sdat, 1, sizef, sdatf)) return false;
-	printf("SDAT Size: %X\n",sizef);
-	fclose(sdatf);
-    NDS_begin(song,SAMPLE_RATE,inf);//SDAT Song Number, Frequency, infinite loop
+    musicFile = fopen(filename, "rb");
+    if (0!=fseek(musicFile, 0, SEEK_END)) return false;
+    int sizef=ftell(musicFile);
+    if (0!=fseek(musicFile, 0, SEEK_SET)) return false;
+    if (sizef!=fread(music, 1, sizef, musicFile)) return false;
+    printf("music Size: %X\n",sizef);
+    fclose(musicFile);
+    init(song,SAMPLE_RATE,inf);//music Song Number, Frequency, infinite loop
     /* Initialize library before making any other calls. */
     err = Pa_Initialize();
     if( err != paNoError ) goto error;
@@ -136,9 +136,9 @@ int main(int argc, char *argv[])
     if( err != paNoError ) goto error;
     while(1){
         sleep(2);
-	if(!running){
+    if(!running){
             err = Pa_StopStream( stream );
-            NDS_stop();
+            stop();
             return 0;
         }
     }
