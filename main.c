@@ -50,11 +50,11 @@ int filePos;
 int song;
 int totalSongs;
 
-float *DSAudio;
-float *lastDSAudio;
+float *audio;
+float *lastAudio;
 char *filename;
 FILE* musicFile = NULL;
-#include "GBA.h"
+#include "GBA.c"
 
 typedef struct
 {
@@ -67,11 +67,11 @@ paTestData;
 ** It may called at interrupt level on some machines so don't do anything
 ** that could mess up the system like calling malloc() or free().
 */
-static int patestCallback( const void *inputBuffer, void *outputBuffer,
+static int patestCallback(const void *inputBuffer, void *outputBuffer,
                            unsigned long framesPerBuffer,
                            const PaStreamCallbackTimeInfo* timeInfo,
                            PaStreamCallbackFlags statusFlags,
-                           void *userData )
+                           void *userData)
 {
     /* Cast data passed through stream to our structure. */
     paTestData *data = (paTestData*)userData;
@@ -79,16 +79,15 @@ static int patestCallback( const void *inputBuffer, void *outputBuffer,
     static unsigned int i;
     (void) inputBuffer; /* Prevent unused variable warning. */
 
-    for( i=0; i<framesPerBuffer; i++ )
-    {
-        DSAudio=loop();
+    for(i = 0; i < framesPerBuffer; i++){
+        audio = mloop();
         if(running){
-            lastDSAudio=DSAudio;
+            lastAudio = audio;
         }else{
-            DSAudio=lastDSAudio;
+            audio = lastAudio;
         }
-        *out++ = *(DSAudio);
-        *out++ = *(DSAudio+1);
+        *out++ = *(audio);
+        *out++ = *(audio+1);
     }
     return 0;
 }
@@ -96,63 +95,62 @@ static int patestCallback( const void *inputBuffer, void *outputBuffer,
 /*******************************************************************/
 static paTestData data;
 static float *out;
-int main(int argc, char *argv[])
-{
-    song=0;
-    bool inf=false;
-    if(argc>1){
-        filename=argv[1];
+int main(int argc, char *argv[]){
+    song = 0;
+    bool inf = false;
+    if(argc > 1){
+        filename = argv[1];
     }else{
-        filename="SA2.bin";
+        filename = "SA2.bin";
     }
-    if(argc>2) song=atoi(argv[2]);
-    if(argc>3) inf=true;
+    if(argc > 2) song = atoi(argv[2]);
+    if(argc > 3) inf = true;
     PaStream *stream;
     PaError err;
     musicFile = fopen(filename, "rb");
-    if (0!=fseek(musicFile, 0, SEEK_END)) return false;
-    int sizef=ftell(musicFile);
-    if (0!=fseek(musicFile, 0, SEEK_SET)) return false;
-    if (sizef!=fread(music, 1, sizef, musicFile)) return false;
+    if (0 != fseek(musicFile, 0, SEEK_END)) return false;
+    int sizef = ftell(musicFile);
+    if (0 != fseek(musicFile, 0, SEEK_SET)) return false;
+    if (sizef != fread(music, 1, sizef, musicFile)) return false;
     printf("music Size: %X\n",sizef);
     fclose(musicFile);
-    init(song,SAMPLE_RATE,inf);//music Song Number, Frequency, infinite loop
+    minit(song,SAMPLE_RATE,inf);//music Song Number, Frequency, infinite loop
     /* Initialize library before making any other calls. */
     err = Pa_Initialize();
     if( err != paNoError ) goto error;
     
     /* Open an audio I/O stream. */
-    err = Pa_OpenDefaultStream( &stream,
+    err = Pa_OpenDefaultStream(&stream,
                                 0,          /* no input channels */
                                 2,          /* stereo output */
                                 paFloat32,  /* 32 bit output */
                                 SAMPLE_RATE,
                                 0x1000,        /* frames per buffer */
                                 patestCallback,
-                                &data );
-    if( err != paNoError ) goto error;
+                                &data);
+    if(err != paNoError) goto error;
 
-    err = Pa_StartStream( stream );
-    if( err != paNoError ) goto error;
+    err = Pa_StartStream(stream);
+    if(err != paNoError) goto error;
     while(1){
         sleep(2);
     if(!running){
-            err = Pa_StopStream( stream );
+            err = Pa_StopStream(stream);
             stop();
             return 0;
         }
     }
-    err = Pa_StopStream( stream );
-    if( err != paNoError ) goto error;
-    err = Pa_CloseStream( stream );
-    if( err != paNoError ) goto error;
+    err = Pa_StopStream(stream);
+    if(err != paNoError) goto error;
+    err = Pa_CloseStream(stream);
+    if(err != paNoError) goto error;
     Pa_Terminate();
     printf("Done!\n");
     return err;
 error:
     Pa_Terminate();
-    fprintf( stderr, "An error occured while using the portaudio stream\n" );
-    fprintf( stderr, "Error number: %d\n", err );
-    fprintf( stderr, "Error message: %s\n", Pa_GetErrorText( err ) );
+    fprintf(stderr, "An error occured while using the portaudio stream\n");
+    fprintf(stderr, "Error number: %d\n", err);
+    fprintf(stderr, "Error message: %s\n", Pa_GetErrorText(err));
     return err;
 }

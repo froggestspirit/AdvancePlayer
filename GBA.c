@@ -1,4 +1,5 @@
 //AdvancePlay 0.2 FroggestSpirit
+#include "GBA.h"
 
 u_int8_t read_byte(){
     return music[filePos++];
@@ -34,7 +35,7 @@ unsigned long read_long_from(unsigned long addr){ //returns the 4 -byte address 
     return read_long();
 }
 
-bool init(int songID, int sRate, bool inf){
+bool minit(int songID, int sRate, bool inf){
     running = false;
     sampleRate = sRate;
     filePos = 0;
@@ -42,8 +43,8 @@ bool init(int songID, int sRate, bool inf){
     delayHit = false;
     tempoFill = 0;
     usedTracks = 0xFFFF;
-    sseqTempo = 120;
-    sseqVol = 0x7F;
+    seqTempo = 120;
+    seqVol = 0x7F;
     fadeVol = 0;
     maxLoops = 2;
     infLoop = inf;
@@ -104,7 +105,6 @@ bool init(int songID, int sRate, bool inf){
         chLoopOffset[i] = 0;
         chReturnOffset[i] = 0;
         chInCall[i] = false;
-    
         chActive[i] = false;
         slotSamplePointer[i] = 0;
         tempNibble = 0;
@@ -116,9 +116,9 @@ bool init(int songID, int sRate, bool inf){
         sampleDone[i] = true;
     }
 
-    sseqIndex = songID;
-    loadSong(sseqIndex);
-    //read sseq header
+    seqIndex = songID;
+    loadSong(seqIndex);
+    //read seq header
     filePos = songLoc + 0x0c;
     for(int i = 0; i < numTracks; i++){
         chPointer[i] = read_long() - songOffset;
@@ -126,70 +126,57 @@ bool init(int songID, int sRate, bool inf){
         timesLooped[i] = 0;
         printf("Track Pointer %X: %X\n", i, chPointer[i]);
     }
-    //read sbnk header
+    //read bank header
     filePos = tablePointer;
-    int numKeySplits = 0;
-    int numAllSplits = 0;
     for(int i = 0; i < 128; i++){
-        keyPointer[i << 7] = filePos;
-        keyIsSplit[i] = 0;
-        switch(read_long() & 0xFF){
-            case 0x00:
-            case 0x08:
-            case 0x03:
-            case 0x0B: //Sample / Wav
-                instPointer[i << 7] = read_long();
-                filePos += 4;
-            break;
-            case 0x01:
-            case 0x02:
-            case 0x04:
-            case 0x09:
-            case 0x0A:
-            case 0x0C: //PSG
-                filePos += 8;
-            break;
-            case 0x40: //Key Split
-                keyIsSplit[i] = 1;
-                numKeySplits++;
-                temp32 = read_long();
-                keySplitPointer = read_long();
-                printf("Key Split Keys at:%X Table at:%X\n", keySplitPointer, temp32);
-                if(keySplitPointer < musicSize && temp32 < musicSize){
-                    tempFilePos = filePos;                
-                    filePos = keySplitPointer;
-                    for(int ii = 0; ii < 128; ii++){//get sub instruments
-                        keyPointer[(i << 7) + ii] = temp32 + (read_byte() * 12);
-                    }
-                    for(int ii = 0; ii < 128; ii++){
-                        filePos = keyPointer[(i << 7) + ii] + 4;
-                        instPointer[(i << 7) + ii] = read_long();
-                    }
-                    filePos = tempFilePos;
-                }
-            break;
-            case 0x80: //Every Key Split
-                keyIsSplit[i] = 1;
-                numAllSplits++;
-                temp32 = read_long();
-                printf("Drum Split at:%X\n", temp32);
-                if(temp32 < musicSize){
-                    tempFilePos = filePos;
-                    for(int ii = 0; ii < 128; ii++){
-                        //get sub instruments
-                        keyPointer[(i << 7) + ii] = temp32 + (ii * 12);
-                        filePos = keyPointer[(i << 7) + ii] + 4;
-                        instPointer[(i << 7) + ii] = read_long();
-                    }
-                    filePos = tempFilePos;
-                }
-                filePos += 4;
-            break;
-        }
+        //keyPointer[i] = filePos;
+        filePos += 12;
     }
-    printf("Number of Key Splits %X\n", numKeySplits);
-    printf("Number of Drum Splits %X\n", numAllSplits);
     running = true;
+    return true;
+}
+
+bool get_instrument_data(unsigned char inst, unsigned char note){
+    //read bank header
+    filePos = tablePointer + (inst * 12);
+    keyPointer[curSlot] = filePos;
+    keyIsSplit[curSlot] = 0;
+    switch(read_long() & 0xFF){
+        case 0x00:
+        case 0x08:
+        case 0x03:
+        case 0x0B: //Sample / Wav
+            instPointer[curSlot] = read_long();
+        break;
+        case 0x01:
+        case 0x02:
+        case 0x04:
+        case 0x09:
+        case 0x0A:
+        case 0x0C: //PSG
+        break;
+        case 0x40: //Key Split
+            keyIsSplit[curSlot] = 1;
+            temp32 = read_long();
+            keySplitPointer = read_long();
+            if(keySplitPointer < musicSize && temp32 < musicSize){               
+                filePos = keySplitPointer + note;
+                keyPointer[curSlot] = temp32 + (read_byte() * 12);
+                filePos = keyPointer[curSlot] + 4;
+                instPointer[curSlot] = read_long();
+            }
+        break;
+        case 0x80: //Every Key Split
+            keyIsSplit[curSlot] = 1;
+            temp32 = read_long();
+            if(temp32 < musicSize){
+                //get sub instruments
+                keyPointer[curSlot] = temp32 + (note * 12);
+                filePos = keyPointer[curSlot] + 4;
+                instPointer[curSlot] = read_long();
+            }
+        break;
+    }
     return true;
 }
 
@@ -198,10 +185,10 @@ bool stop(){
     return true;
 }
 
-float *loop(){
+float *mloop(){
     seqFrame = false;
     static int c = 0;
- //sample processing
+    //sample processing
     if (!running) return 0; //Nothing to do here!
     if(paused) return 0;
     c += 60;
@@ -213,7 +200,7 @@ float *loop(){
             if(fadeVol <= - 723) running = false;
             if (!running) return 0;
         }
-        tempoFill += sseqTempo;
+        tempoFill += seqTempo;
         while(tempoFill >= 150){
             tempoFill -= 150;
             for(int i = 0; i < 16; i++){
@@ -265,7 +252,7 @@ float *loop(){
                                     chPointer[i] += 2;
                                 break;
                                 case 0xBB: //Tempo
-                                    sseqTempo = (read_byte() << 1);
+                                    seqTempo = (read_byte() << 1);
                                     chPointer[i] += 2;
                                 break;
                                 case 0xBC: //Transpose
@@ -416,15 +403,12 @@ float *loop(){
                                                     chPointer[i]++;
                                                 }
                                             }
-                                            if(keyIsSplit[chInstrument[i]] == 1){
-                                                slotSamplePointer[curSlot] = instPointer[(chInstrument[i] << 7) + slotNote[curSlot]];
-                                                slotInstType[curSlot] = music[keyPointer[(chInstrument[i] << 7) + slotNote[curSlot]]];
-                                                slotKeyPointer[curSlot] = keyPointer[(chInstrument[i] << 7) + slotNote[curSlot]];
-                                            }else{
-                                                slotSamplePointer[curSlot] = instPointer[chInstrument[i] << 7];
-                                                slotInstType[curSlot] = music[keyPointer[(chInstrument[i] << 7)]];
-                                                slotKeyPointer[curSlot] = keyPointer[(chInstrument[i] << 7)];
-                                            }
+                                            tempFilePos = filePos;
+                                            get_instrument_data(chInstrument[i], slotNote[curSlot]);
+                                            filePos = tempFilePos;
+                                            slotSamplePointer[curSlot] = instPointer[curSlot];
+                                            slotInstType[curSlot] = music[keyPointer[curSlot]];
+                                            slotKeyPointer[curSlot] = keyPointer[curSlot];
                                             //if(chPitchBendCur[i] != 0) printf("%X Pitch:%X\n", i, chPitchBendCur[i]);
                                             if(slotInstType[curSlot] == 0 || slotInstType[curSlot] == 8){ //Sample
                                                 if(slotInstType[curSlot] == 0){
@@ -447,14 +431,14 @@ float *loop(){
                                                 samplePitchFill[curSlot] = sampleRate;
                                                 if(music[slotSamplePointer[curSlot] + 3] == 0x40){
                                                     sampleLoops[curSlot] = 1;
-                                                    sampleLoop[curSlot] = float(read_long_from(slotSamplePointer[curSlot] + 8));
+                                                    sampleLoop[curSlot] = (float)(read_long_from(slotSamplePointer[curSlot] + 8));
                                                 }else{
                                                     sampleLoops[curSlot] = 0;
                                                     sampleLoop[curSlot] = 0.0f;
                                                 }
                                                 samplePitch[curSlot] = read_long_from(slotSamplePointer[curSlot] + 4);
                                                 samplePitch[curSlot] /= 1024;
-                                                sampleEnd[curSlot] = float(read_long_from(slotSamplePointer[curSlot] + 12));
+                                                sampleEnd[curSlot] = (float)(read_long_from(slotSamplePointer[curSlot] + 12));
                                                 sampleLoopLength[curSlot] = sampleEnd[curSlot] - sampleLoop[curSlot];
                                                 slotSamplePointer[curSlot] += 16;
                                             }else if((slotInstType[curSlot] & 7) < 3){ //PSG
@@ -622,7 +606,7 @@ float *loop(){
             }
             tune = FREQ_TABLE[tune];
                 if((slotInstType[i] & 7) == 3){ //Wav
-                    temp[0] = music[int((samplePos[i] / 2) + slotSamplePointer[i])];
+                    temp[0] = music[(int)((samplePos[i] / 2) + slotSamplePointer[i])];
                     if(fmod((samplePos[i] / 2), 1) < 0.5f){
                             temp[0] &= 0xF0;
                     }else{
@@ -631,13 +615,13 @@ float *loop(){
                     
                     sampleOutput[i] = (temp[0] - 0x80) / 1024.0f;
                 }else if((slotInstType[i] & 7) == 4){ //PSG Noise
-                        soundChannel4Bit = int(samplePos[i]) & 7;
-                        if(slotSamplePointer[i]) sampleOutput[i] = ((((lfsr7[int(samplePos[i] / 8)] << soundChannel4Bit) & 0x80) << 1) - 0x80) / 1024.0f;
-                        if(!slotSamplePointer[i]) sampleOutput[i] = ((((lfsr15[int(samplePos[i] / 8)] << soundChannel4Bit) & 0x80) << 1) - 0x80) / 1024.0f;
+                        soundChannel4Bit = (int)(samplePos[i]) & 7;
+                        if(slotSamplePointer[i]) sampleOutput[i] = ((((lfsr7[(int)(samplePos[i] / 8)] << soundChannel4Bit) & 0x80) << 1) - 0x80) / 1024.0f;
+                        if(!slotSamplePointer[i]) sampleOutput[i] = ((((lfsr15[(int)(samplePos[i] / 8)] << soundChannel4Bit) & 0x80) << 1) - 0x80) / 1024.0f;
                 }else if(slotSamplePointer[i] <= 0x40){ //PSG
-                        sampleOutput[i] = (PSG[int(samplePos[i] + slotSamplePointer[i])] - 0x80) / 1024.0f;
+                        sampleOutput[i] = (PSG[(int)(samplePos[i] + slotSamplePointer[i])] - 0x80) / 1024.0f;
                 }else{ //sample
-                        sampleOutput[i] = music[int(samplePos[i] + slotSamplePointer[i])];
+                        sampleOutput[i] = music[(int)(samplePos[i] + slotSamplePointer[i])];
                         if(sampleOutput[i] >= 0x80) sampleOutput[i] -= 0x100;
                         sampleOutput[i] = (sampleOutput[i]) / 512.0f;
                 }

@@ -1,9 +1,9 @@
 
 bool running;
-bool init(int songID, int sRate, bool inf);
+bool minit(int songID, int sRate, bool inf);
 bool loadSong(int id);
 unsigned long read_long_from(unsigned long addr);
-float * loop();
+float *mloop();
 bool stop();
 float sampleRate;
 unsigned int musicSize;
@@ -37,24 +37,24 @@ unsigned char varLength;
 unsigned short headerSize;
 unsigned long infoBlock;
 unsigned long fatArray;
-unsigned long sseqArray;
-unsigned long sbnkArray;
-unsigned long swarArray;
-unsigned short sseqID;
-unsigned short sbnkID;
-unsigned short swarID[4];
+unsigned long seqArray;
+unsigned long bankArray;
+unsigned long wavArray;
+unsigned short seqID;
+unsigned short bankID;
+unsigned short wavID[4];
 
-int sseqIndex;
-unsigned long sseqPointer;
-unsigned long sbnkPointer;
-unsigned long swarPointer[4];
-unsigned long sseqSize;
+int seqIndex;
+unsigned long seqPointer;
+unsigned long bankPointer;
+unsigned long wavPointer[4];
+unsigned long seqSize;
 unsigned long dataOffset;
 unsigned long chPointer[16];
 unsigned short usedTracks;
-unsigned short sseqTempo;
+unsigned short seqTempo;
 unsigned short tempoFill;
-unsigned char sseqVol;
+unsigned char seqVol;
 
 unsigned char repeated;//1 if the command was repeated
 unsigned char slotChannel[16];//sample playing in this slot belongs to what channel
@@ -110,8 +110,8 @@ unsigned char slotPanR[16];
 unsigned char slotADSRVol[16];
 unsigned char slotADSRState[16];
 
-unsigned long keyPointer[0x80 * 0x80];
-unsigned long instPointer[0x80 * 0x80];
+unsigned long keyPointer[16];
+unsigned long instPointer[16];
 
 float volModL[16];
 float volModR[16];
@@ -124,13 +124,13 @@ unsigned short slotSampleID[16];//(channel instrument<<7)+note
 unsigned long samplePitchFill[16];
 float samplePos[16];//current position in the sample
 
-float samplePitch[0x80*0x80];
-unsigned long sampleOffset[0x80*0x80];//offset of the current sample
-float sampleEnd[0x80*0x80];//the end of the sample
-float sampleLoop[0x80*0x80];//loop point
-float sampleLoopLength[0x80*0x80];//length of loop point to end
-unsigned char sampleFormat[0x80*0x80];//format of the sample
-bool sampleLoops[0x80*0x80];//does the sample loop
+float samplePitch[16];
+unsigned long sampleOffset[16];//offset of the current sample
+float sampleEnd[16];//the end of the sample
+float sampleLoop[16];//loop point
+float sampleLoopLength[16];//length of loop point to end
+unsigned char sampleFormat[16];//format of the sample
+bool sampleLoops[16];//does the sample loop
 
 signed short soundChannel4Bit;
 bool sampleDone[16];//did the non-looping sample finish
@@ -146,5 +146,3 @@ float curKeyRoot[16];
 float lastSample[2];
 
 signed char PSG[0x40];
-
-#include "GBA.cpp"

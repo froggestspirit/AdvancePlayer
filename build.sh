@@ -1,3 +1,3 @@
 echo Building...
-gcc -Wall main.cpp -lm -lportaudio -o AdvancePlay-`uname -m`
+gcc -Wall main.c -lm -lportaudio -o AdvancePlay-`uname -m`
 echo Done!
