@@ -52,7 +52,12 @@ bool minit(int songID, int sRate, bool inf){
     mixer[1] = 0;
     soundOut[0] = 0;
     soundOut[1] = 0;
-    
+    gb_hram[0x25] = 0xFF;
+    gb_hram[0x26] = 0x80;
+    PU4Table = lfsr15;
+    PU4TableLen = 0x7FFF;
+    PU1Table = PU1;
+    PU2Table = PU1;
     musicSize = sizeof(music);
     printf("File Size:%d\n", musicSize);
     for(int i = 0; i < 16; i++){
@@ -185,13 +190,268 @@ bool stop(){
     return true;
 }
 
+void gb_write(unsigned char addr, unsigned char val){
+    if((addr >= 0x10) && (addr <= 0x2F)){
+        switch(addr){
+            case 0x10://ch1 sweep
+                gb_hram[addr] = val;
+                gb_ch1SweepDir = (val & 0x08) >> 3;
+                gb_ch1SweepCounter = gb_ch1SweepCounterI = (val & 0x70) >> 4;
+                gb_ch1SweepShift = (val & 0x07);
+            break;
+            case 0x11://ch1 duty/length
+                gb_hram[addr] = val;
+                switch(val & 0xC0){
+                    case 0x00:
+                        PU1Table = PU0;
+                    break;
+                    case 0x40:
+                        PU1Table = PU1;
+                    break;
+                    case 0x80:
+                        PU1Table = PU2;
+                    break;
+                    case 0xC0:
+                        PU1Table = PU3;
+                    break;
+                }
+                gb_ch1Len = gb_ch1LenI = val & 0x3F;
+            break;
+            case 0x16://ch2 duty/length
+                gb_hram[addr] = val; 
+                switch(val & 0xC0){
+                    case 0x00:
+                        PU2Table = PU0;
+                    break;
+                    case 0x40:
+                        PU2Table = PU1;
+                    break;
+                    case 0x80:
+                        PU2Table = PU2;
+                    break;
+                    case 0xC0:
+                        PU2Table = PU3;
+                    break;
+                }
+                gb_ch2Len = gb_ch2LenI = val & 0x3F;
+            break;
+            case 0x1B://ch3 length
+                gb_hram[addr] = val; 
+                gb_ch3Len = gb_ch3LenI = val;
+            break;
+            case 0x20://ch4 length
+                gb_hram[addr] = val; 
+                gb_ch3Len = gb_ch3LenI = val & 0x3F;
+            break;
+            case 0x12://ch1 envelope
+                gb_hram[addr] = val;
+                gb_ch1Vol = gb_ch1VolI = (val & 0xF0) >> 4;
+                gb_ch1EnvDir = (val & 0x08) >> 3;
+                gb_ch1EnvCounter = gb_ch1EnvCounterI = (val & 0x07);
+            break;
+            case 0x17://ch2 envelope
+                gb_hram[addr] = val;
+                gb_ch2Vol = gb_ch2VolI = (val & 0xF0) >> 4;
+                gb_ch2EnvDir = (val & 0x08) >> 3;
+                gb_ch2EnvCounter = gb_ch2EnvCounterI = (val & 0x07);
+            break;
+            case 0x1C://ch3 Volume (on hardware, this bitshifts the wav samples. The method here is quicker, sounds better, but is less accurate compared to hardware)
+                gb_hram[addr] = val;
+                switch((val & 0x60)){
+                    case 0x00://mute
+                        gb_ch3Vol = gb_ch3VolI = 0;
+                    break;
+                    case 0x20://full
+                        gb_ch3Vol = gb_ch3VolI = 16;
+                    break;
+                    case 0x40://half
+                        gb_ch3Vol = gb_ch3VolI = 8;
+                    break;
+                    case 0x60://quarter
+                        gb_ch3Vol = gb_ch3VolI = 4;
+                    break;
+                }
+            break;
+            case 0x21://ch4 envelope
+                gb_hram[addr] = val;
+                gb_ch4Vol = gb_ch4VolI = (val & 0xF0) >> 4;
+                gb_ch4EnvDir = (val & 0x08) >> 3;
+                gb_ch4EnvCounter = gb_ch4EnvCounterI = (val & 0x07);
+            break;
+            case 0x14://ch1 retrigger sound
+                gb_hram[addr] = val;
+                if(val & 0x80){
+                    gb_ch1Vol = gb_ch1VolI;
+                    gb_ch1SweepCounter = gb_ch1SweepCounterI;
+                    gb_ch1EnvCounter = gb_ch1EnvCounterI;
+                }
+                if(val & 0x40){
+                    gb_ch1LenOn = 1;
+                }else{
+                    gb_ch1LenOn = 0;
+                }
+                gb_ch1Len = gb_ch1LenI;
+            break;
+            case 0x19://ch2 retrigger sound
+                gb_hram[addr] = val;
+                if(val & 0x80){
+                    gb_ch2Vol = gb_ch2VolI;
+                    gb_ch2EnvCounter = gb_ch2EnvCounterI;
+                }
+                if(val & 0x40){
+                    gb_ch2LenOn = 1;
+                }else{
+                    gb_ch2LenOn = 0;
+                }
+                gb_ch2Len = gb_ch2LenI;
+            break;
+            case 0x1E://ch3 retrigger sound
+                gb_hram[addr] = val;
+                if(val & 0x80){
+                    gb_ch3Vol = gb_ch3VolI;
+                }
+                if(val & 0x40){
+                    gb_ch3LenOn = 1;
+                }else{
+                    gb_ch3LenOn = 0;
+                }
+                gb_ch3Len = gb_ch3LenI;
+            break;
+            case 0x22://ch4 noise type
+                gb_hram[addr] = val;
+                switch(val & 0x08){
+                    case 0x00:
+                        PU4Table = lfsr15;
+                        PU4TableLen = 0x7FFF;
+                    break;
+                    case 0x08:
+                        PU4Table = lfsr7;
+                        PU4TableLen = 0x7F;
+                    break;
+                }
+            break;
+            case 0x23://ch4 retrigger sound
+                gb_hram[addr] = val;
+                if(val & 0x80){
+                    gb_ch4Vol = gb_ch4VolI;
+                    gb_ch4EnvCounter = gb_ch4EnvCounterI;
+                }
+                if(val & 0x40){
+                    gb_ch4LenOn = 1;
+                }else{
+                    gb_ch4LenOn = 0;
+                }
+                gb_ch4Len = gb_ch4LenI;
+            break;
+            default:
+                gb_hram[addr] = val;
+                break;
+        }
+    }
+    if((addr >= 0x30) && (addr <= 0x3F)){
+        gb_WAVRAM[((addr & 0x0F) << 1)] = ((val & 0xF0) << 1) - 0xF0;
+        gb_WAVRAM[((addr & 0x0F) << 1) + 1] = ((val & 0x0F) << 5) - 0xF0;
+    }
+}
+
 float *mloop(){
     seqFrame = false;
     static int c = 0;
+    static int gb_audio_step = 0;
+    static bool gb_swp_update = 0;
+    static bool gb_env_update = 0;    
     //sample processing
     if (!running) return 0; //Nothing to do here!
     if(paused) return 0;
     c += 60;
+    gb_audio_step += 256; //updates 256hz
+    if(gb_audio_step >= sampleRate){ //GB audio update
+        gb_audio_step -= sampleRate;
+        if(gb_ch1Len){
+            if(--gb_ch1Len == 0 && gb_ch1LenOn){
+                gb_ch1Vol = gb_ch1EnvCounter = 0;
+            }
+        }
+        
+        if(gb_ch2Len){
+            if(--gb_ch2Len == 0 && gb_ch2LenOn){
+                gb_ch2Vol = gb_ch2EnvCounter = 0;
+            }
+        }
+        
+        if(gb_ch3Len){
+            if(--gb_ch3Len == 0 && gb_ch3LenOn){
+                gb_ch3Vol = 0;
+            }
+        }
+        
+        if(gb_ch4Len){
+            if(--gb_ch4Len == 0 && gb_ch4LenOn){
+                gb_ch4Vol = gb_ch4EnvCounter = 0;
+            }
+        }
+        gb_swp_update ^= 1;
+        if(gb_swp_update == 1){
+            if(gb_ch1SweepCounterI && gb_ch1SweepShift){
+                if(--gb_ch1SweepCounter == 0){
+                    gb_ch1Freq = gb_hram[0x13] + ((gb_hram[0x14] & 7) << 8);
+                    if(gb_ch1SweepDir){
+                        gb_ch1Freq -= gb_ch1Freq >> gb_ch1SweepShift;
+                        if(gb_ch1Freq & 0xF800) gb_ch1Freq = 0;
+                    }else{
+                        gb_ch1Freq += gb_ch1Freq >> gb_ch1SweepShift;
+                        if(gb_ch1Freq & 0xF800){
+                            gb_ch1Freq = 0;
+                            gb_ch1EnvCounter = 0;
+                            gb_ch1Vol = 0;
+                        }
+                    }
+                    gb_hram[0x13] = gb_ch1Freq & 0xFF;
+                    gb_hram[0x14] &= 0xF8;
+                    gb_hram[0x14] += (gb_ch1Freq >> 8) & 0x07;
+                    gb_ch1SweepCounter = gb_ch1SweepCounterI;
+                }
+            }
+            gb_env_update ^= 1;
+            if(gb_env_update == 1){
+                if(gb_ch1EnvCounter){
+                    if(--gb_ch1EnvCounter == 0){
+                        if(gb_ch1Vol && !gb_ch1EnvDir){
+                        gb_ch1Vol--;
+                        gb_ch1EnvCounter = gb_ch1EnvCounterI;
+                        }else if(gb_ch1Vol < 0x0F && gb_ch1EnvDir){
+                        gb_ch1Vol++;
+                        gb_ch1EnvCounter = gb_ch1EnvCounterI;
+                        }
+                    }
+                }
+                
+                if(gb_ch2EnvCounter){
+                    if(--gb_ch2EnvCounter == 0){
+                        if(gb_ch2Vol && !gb_ch2EnvDir){
+                        gb_ch2Vol--;
+                        gb_ch2EnvCounter = gb_ch2EnvCounterI;
+                        }else if(gb_ch2Vol < 0x0F && gb_ch2EnvDir){
+                        gb_ch2Vol++;
+                        gb_ch2EnvCounter = gb_ch2EnvCounterI;
+                        }
+                    }
+                }
+                
+                if(gb_ch4EnvCounter){
+                    if(--gb_ch4EnvCounter == 0){
+                        if(gb_ch4Vol && !gb_ch4EnvDir){
+                        gb_ch4Vol--;
+                        gb_ch4EnvCounter = gb_ch4EnvCounterI;
+                        }else if(gb_ch4Vol < 0x0F && gb_ch4EnvDir){
+                        gb_ch4Vol++;
+                        gb_ch4EnvCounter = gb_ch4EnvCounterI;
+                        }
+                    }
+                }
+            }
+        }
+    }
     if(c >= sampleRate){ //player update
         c -= sampleRate;
         seqFrame = true;
@@ -442,6 +702,12 @@ float *mloop(){
                                                 sampleLoopLength[curSlot] = sampleEnd[curSlot] - sampleLoop[curSlot];
                                                 slotSamplePointer[curSlot] += 16;
                                             }else if((slotInstType[curSlot] & 7) < 3){ //PSG
+                                                sampleDone[curSlot] = true;
+                                                slotFree[curSlot] = true;
+                                                gb_write(0x12,0xC1);//for testing
+                                                gb_write(0x13,0xFF);
+                                                gb_write(0x14,0x83);
+                                            /*
                                                 slotPitchFill[curSlot] = slotPitch[curSlot] = FREQ_TABLE[(music[slotKeyPointer[curSlot] + 1] + 12) << 7];
                                                 sampleDone[curSlot] = false;
                                                 samplePos[curSlot] = 0;
@@ -463,8 +729,12 @@ float *mloop(){
                                                 samplePitch[curSlot] = 0x20B7;
                                                 sampleEnd[curSlot] = 16.0f;
                                                 sampleLoopLength[curSlot] = 16.0f;
-                                                slotSamplePointer[curSlot] = music[slotKeyPointer[curSlot] + 4] * 0x10;
+                                                slotSamplePointer[curSlot] = music[slotKeyPointer[curSlot] + 4] * 0x10;*/
                                             }else if((slotInstType[curSlot] & 7) == 3){ //Wav
+                                                sampleDone[curSlot] = true;
+                                                slotFree[curSlot] = true;
+
+                                            /*
                                                 slotPitchFill[curSlot] = slotPitch[curSlot] = FREQ_TABLE[(music[slotKeyPointer[curSlot] + 1] + 12) << 7];
                                                 sampleDone[curSlot] = false;
                                                 samplePos[curSlot] = 0;
@@ -486,8 +756,13 @@ float *mloop(){
                                                 samplePitch[curSlot] = 0x20B7;
                                                 sampleEnd[curSlot] = 32.0f;
                                                 sampleLoopLength[curSlot] = 32.0f;
-                                                slotWavNibble[curSlot] = 0;
+                                                slotWavNibble[curSlot] = 0;*/
                                             }else if((slotInstType[curSlot] & 7) == 4){ //Noise
+                                                sampleDone[curSlot] = true;
+                                                slotFree[curSlot] = true;
+                                                gb_write(0x21,0xC1);//for testing
+                                                gb_write(0x23,0xFF);
+                                            /*
                                                 slotPitchFill[curSlot] = slotPitch[curSlot] = 1; //FREQ_TABLE[(music[slotKeyPointer[curSlot] + 1] + 12) << 7];
                                                 sampleDone[curSlot] = false;
                                                 samplePos[curSlot] = 0;
@@ -510,9 +785,10 @@ float *mloop(){
                                                 slotSamplePointer[curSlot] = music[slotKeyPointer[curSlot] + 4];
                                                 if(slotSamplePointer[curSlot]) sampleEnd[curSlot] = 0x7F;
                                                 if(!slotSamplePointer[curSlot]) sampleEnd[curSlot] = 0x7FFF;
-                                                sampleLoopLength[curSlot] = sampleEnd[curSlot];
+                                                sampleLoopLength[curSlot] = sampleEnd[curSlot];*/
                                             }else{
                                                 sampleDone[curSlot] = true;
+                                                slotFree[curSlot] = true;
                                                 //printf("%X Invalid Inst Type?:%X\n", i, slotInstType[curSlot]);
                                             }
 
@@ -556,15 +832,14 @@ float *mloop(){
                 if(slotNoteLen[i] > 0){
                     slotNoteLen[i] -= 1; //change this
                     if(slotNoteLen[i] == 0){
-                                slotFree[i] = 0;
-                                slotADSRState[i] = 3;
-                                slotADSRVol[i] = slotSustain[i];
-                        }
+                        slotFree[i] = 0;
+                        slotADSRState[i] = 3;
+                        slotADSRVol[i] = slotSustain[i];
+                    }
                 }
             }
         }
         for(int i = 0; i < 16; i++){
-            
             switch(slotADSRState[i]){
                 case 0:
                     slotADSRVol[i] += slotAttack[i];
@@ -605,27 +880,10 @@ float *mloop(){
                 tune = (128 * 128) - 1;
             }
             tune = FREQ_TABLE[tune];
-                if((slotInstType[i] & 7) == 3){ //Wav
-                    temp[0] = music[(int)((samplePos[i] / 2) + slotSamplePointer[i])];
-                    if(fmod((samplePos[i] / 2), 1) < 0.5f){
-                            temp[0] &= 0xF0;
-                    }else{
-                            temp[0] <<= 4;
-                    }
-                    
-                    sampleOutput[i] = (temp[0] - 0x80) / 1024.0f;
-                }else if((slotInstType[i] & 7) == 4){ //PSG Noise
-                        soundChannel4Bit = (int)(samplePos[i]) & 7;
-                        if(slotSamplePointer[i]) sampleOutput[i] = ((((lfsr7[(int)(samplePos[i] / 8)] << soundChannel4Bit) & 0x80) << 1) - 0x80) / 1024.0f;
-                        if(!slotSamplePointer[i]) sampleOutput[i] = ((((lfsr15[(int)(samplePos[i] / 8)] << soundChannel4Bit) & 0x80) << 1) - 0x80) / 1024.0f;
-                }else if(slotSamplePointer[i] <= 0x40){ //PSG
-                        sampleOutput[i] = (PSG[(int)(samplePos[i] + slotSamplePointer[i])] - 0x80) / 1024.0f;
-                }else{ //sample
-                        sampleOutput[i] = music[(int)(samplePos[i] + slotSamplePointer[i])];
-                        if(sampleOutput[i] >= 0x80) sampleOutput[i] -= 0x100;
-                        sampleOutput[i] = (sampleOutput[i]) / 512.0f;
-                }
-                samplePos[i] += ((samplePitch[i] * (tune / slotPitch[i])) / sampleRate);
+            sampleOutput[i] = music[(int)(samplePos[i] + slotSamplePointer[i])];
+            if(sampleOutput[i] >= 0x80) sampleOutput[i] -= 0x100;
+            sampleOutput[i] = (sampleOutput[i]) / 512.0f;
+            samplePos[i] += ((samplePitch[i] * (tune / slotPitch[i])) / sampleRate);
             if(samplePos[i] >= sampleEnd[i]){
                 if(sampleLoops[i]){
                     samplePos[i] = sampleLoop[i] + fmod((samplePos[i] - sampleLoop[i]), sampleLoopLength[i]);
@@ -638,7 +896,31 @@ float *mloop(){
             mixer[1] += (sampleOutput[i] * volModR[i]); //right
         }
     }
-    soundOut[0] = mixer[0];
-    soundOut[1] = mixer[1];
+
+    //GameBoy Synths Sound generation loop
+    soundChannelPos[0] += freqTable[gb_hram[0x13] + ((gb_hram[0x14] & 7) << 8)] / (SAMPLE_RATE / 32);
+    soundChannelPos[1] += freqTable[gb_hram[0x18] + ((gb_hram[0x19] & 7) << 8)] / (SAMPLE_RATE / 32);
+    soundChannelPos[2] += freqTable[gb_hram[0x1D] + ((gb_hram[0x1E] & 7) << 8)] / (SAMPLE_RATE / 32);
+    soundChannelPos[3] += freqTableNSE[gb_hram[0x22]] / (SAMPLE_RATE);
+    while(soundChannelPos[0] >= 32) soundChannelPos[0] -= 32;
+    while(soundChannelPos[1] >= 32) soundChannelPos[1] -= 32;
+    while(soundChannelPos[2] >= 32) soundChannelPos[2] -= 32;
+    while(soundChannelPos[3] >= PU4TableLen) soundChannelPos[3] = 0;
+    soundBuffer[0] = 0;//change these to floats
+    soundBuffer[1] = 0;
+    if(gb_hram[0x26] & 0x80){
+        if(gb_hram[0x25] & 0x01) soundBuffer[0] += gb_ch1Vol * PU1Table[(int)(soundChannelPos[0])];
+        if(gb_hram[0x25] & 0x10) soundBuffer[1] += gb_ch1Vol * PU1Table[(int)(soundChannelPos[0])];
+        if(gb_hram[0x25] & 0x02) soundBuffer[0] += gb_ch2Vol * PU2Table[(int)(soundChannelPos[1])];
+        if(gb_hram[0x25] & 0x20) soundBuffer[1] += gb_ch2Vol * PU2Table[(int)(soundChannelPos[1])];
+        if((gb_hram[0x25] & 0x04) && (gb_hram[0x1A] & 0x80)) soundBuffer[0] += gb_ch3Vol * gb_WAVRAM[(int)(soundChannelPos[2])];
+        if((gb_hram[0x25] & 0x40) && (gb_hram[0x1A] & 0x80)) soundBuffer[1] += gb_ch3Vol * gb_WAVRAM[(int)(soundChannelPos[2])];
+        soundChannel4Bit = (int)(soundChannelPos[3]) & 7;
+        if(gb_hram[0x25] & 0x08) soundBuffer[0] += gb_ch4Vol * ((((PU4Table[(int)(soundChannelPos[3]/8)] << soundChannel4Bit) & 0x80) << 2) - 0x100);
+        if(gb_hram[0x25] & 0x80) soundBuffer[1] += gb_ch4Vol * ((((PU4Table[(int)(soundChannelPos[3]/8)] << soundChannel4Bit) & 0x80) << 2) - 0x100);
+    }
+
+    soundOut[0] = mixer[0] + ((float)(soundBuffer[0])/0x1000f);
+    soundOut[1] = mixer[1] + ((float)(soundBuffer[1])/0x1000f);
     return soundOut;
 }
