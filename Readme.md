@@ -1,7 +1,7 @@
 AdvancePlayer 0.3
 
 
-to build: run "sh build.sh" while in the directory. portaudio is needed.
+portaudio19-dev is needed.
 
 to run: run the executable in CLI with the *.bin (ripped with AdvanceRipper) passed as an argument. If no file is specified, it will look for "SA2.bin" in the directory
 
