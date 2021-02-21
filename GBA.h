@@ -1,9 +1,23 @@
+#ifndef ADVANCEPLAY_H
+#define ADVANCEPLAY_H
+
+#include <stdbool.h>
+#include <stdint.h>
+
+#define SAMPLE_RATE 48000
+
+#include "lookuptables.h"
+#include "lfsr.h"
+
+unsigned char music[0x8000000];
+int filePos;
+int totalSongs;
 
 bool running;
 bool minit(int songID, int sRate, bool inf);
 bool loadSong(int id);
 unsigned long read_long_from(unsigned long addr);
-float *mloop();
+void mloop();
 bool stop();
 float sampleRate;
 unsigned int musicSize;
@@ -191,3 +205,4 @@ bool gb_ch1EnvDir;
 bool gb_ch2EnvDir;
 bool gb_ch4EnvDir;
 unsigned short gb_WAVRAM[32];
+#endif

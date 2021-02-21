@@ -1,3 +1,0 @@
-echo Building...
-gcc -Wall main.c -lm -lportaudio -o AdvancePlay-`uname -m`
-echo Done!

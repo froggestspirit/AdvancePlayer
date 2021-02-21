@@ -1,20 +1,17 @@
 //AdvancePlay 0.2 FroggestSpirit
 #include "GBA.h"
 
-u_int8_t read_byte(){
+uint8_t read_byte(){
     return music[filePos++];
 }
 
-u_int16_t read_short(){
+uint16_t read_short(){
     return music[filePos++] + (music[filePos++] << 8);
 }
 
-u_int32_t read_long(){
+uint32_t read_long(){
     return music[filePos++] + (music[filePos++] << 8) + (music[filePos++] << 16) + (music[filePos++] << 24);
 }
-
-#include "lookuptables.h"
-#include "lfsr.h"
 
 bool loadSong(int id){ //loads a song
     int idi = id;
@@ -354,7 +351,7 @@ void gb_write(unsigned char addr, unsigned char val){
     }
 }
 
-float *mloop(){
+void mloop(float* out){
     seqFrame = false;
     static int c = 0;
     static int gb_audio_step = 0;
@@ -920,7 +917,6 @@ float *mloop(){
         if(gb_hram[0x25] & 0x80) soundBuffer[1] += gb_ch4Vol * ((((PU4Table[(int)(soundChannelPos[3]/8)] << soundChannel4Bit) & 0x80) << 2) - 0x100);
     }
 
-    soundOut[0] = mixer[0] + ((float)(soundBuffer[0])/0x1000f);
-    soundOut[1] = mixer[1] + ((float)(soundBuffer[1])/0x1000f);
-    return soundOut;
+    out[0] = mixer[0] + ((float)(soundBuffer[0])/0x1000f);
+    out[1] = mixer[1] + ((float)(soundBuffer[1])/0x1000f);
 }

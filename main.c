@@ -45,16 +45,15 @@
 #define max(a,b) fmax(a,b)
 #include <portaudio.h>
 #define SAMPLE_RATE   (48000)
-unsigned char music[0x8000000];
-int filePos;
+extern unsigned char music[];
 int song;
-int totalSongs;
-
-float *audio;
+extern int totalSongs;
+extern bool running;
+float audio[2];
 float *lastAudio;
 char *filename;
 FILE* musicFile = NULL;
-#include "GBA.c"
+//#include "GBA.h"
 
 typedef struct
 {
@@ -80,12 +79,8 @@ static int patestCallback(const void *inputBuffer, void *outputBuffer,
     (void) inputBuffer; /* Prevent unused variable warning. */
 
     for(i = 0; i < framesPerBuffer; i++){
-        audio = mloop();
-        if(running){
-            lastAudio = audio;
-        }else{
-            audio = lastAudio;
-        }
+        mloop(&audio);
+
         *out++ = *(audio);
         *out++ = *(audio+1);
     }
