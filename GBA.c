@@ -701,9 +701,21 @@ void mloop(float* out){
                                             }else if((slotInstType[curSlot] & 7) < 3){ //PSG
                                                 sampleDone[curSlot] = true;
                                                 slotFree[curSlot] = true;
-                                                gb_write(0x12,0xC1);//for testing
-                                                gb_write(0x13,0xFF);
-                                                gb_write(0x14,0x83);
+                                                temp[0] = slotNote[curSlot];
+                                                temp[1] = 0;
+                                                if(music[slotKeyPointer[curSlot] + 2] > 0) temp[1] = 0x40;
+                                                if((slotInstType[curSlot] & 7) == 1){
+                                                    gb_write(0x10, music[slotKeyPointer[curSlot] + 3]);
+                                                    gb_write(0x11, (music[slotKeyPointer[curSlot] + 4] << 6) + music[slotKeyPointer[curSlot] + 2]);
+                                                    gb_write(0x12, (music[slotKeyPointer[curSlot] + 10] << 4) + (music[slotKeyPointer[curSlot] + 9] & 0x0F));
+                                                    gb_write(0x13, (freqTableGB[temp[0]] & 0xFF));
+                                                    gb_write(0x14, 0x80 | temp[1] | (freqTableGB[temp[0]] >> 8));
+                                                }else{
+                                                    gb_write(0x16, (music[slotKeyPointer[curSlot] + 4] << 6) + music[slotKeyPointer[curSlot] + 2]);
+                                                    gb_write(0x17, (music[slotKeyPointer[curSlot] + 10] << 4) + (music[slotKeyPointer[curSlot] + 9] & 0x0F));
+                                                    gb_write(0x18, (freqTableGB[temp[0]] & 0xFF));
+                                                    gb_write(0x19, 0x80 | temp[1] | (freqTableGB[temp[0]] >> 8));
+                                                }
                                             /*
                                                 slotPitchFill[curSlot] = slotPitch[curSlot] = FREQ_TABLE[(music[slotKeyPointer[curSlot] + 1] + 12) << 7];
                                                 sampleDone[curSlot] = false;
@@ -730,7 +742,14 @@ void mloop(float* out){
                                             }else if((slotInstType[curSlot] & 7) == 3){ //Wav
                                                 sampleDone[curSlot] = true;
                                                 slotFree[curSlot] = true;
-
+                                                temp[0] = slotNote[curSlot];
+                                                for(int wi = 0; wi < 16; wi++){
+                                                    gb_write(0x30 + wi, music[slotSamplePointer[curSlot] + wi]);
+                                                }
+                                                gb_write(0x1A, 0x80);
+                                                gb_write(0x1C, 0x20);
+                                                gb_write(0x1D, (freqTableGB[temp[0]] & 0xFF));
+                                                gb_write(0x1E, 0x80 | (freqTableGB[temp[0]] >> 8));
                                             /*
                                                 slotPitchFill[curSlot] = slotPitch[curSlot] = FREQ_TABLE[(music[slotKeyPointer[curSlot] + 1] + 12) << 7];
                                                 sampleDone[curSlot] = false;
