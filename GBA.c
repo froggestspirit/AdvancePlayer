@@ -523,6 +523,7 @@ void mloop(float* out){
                                 break;
                                 case 0xBE: //Volume
                                     chVol[i] = read_byte();
+                                    //printf("VOL:%X:%X\n", i, chVol[i]);
                                     chPointer[i] += 2;
                                     lastCommand[i] = 0xBE;
                                 break;
@@ -572,7 +573,7 @@ void mloop(float* out){
                                     lastCommand[i] = 0xCD;
                                 break;
                                 case 0xCE: //Note Off
-                                    //printf("OFF:%X\n", i);
+                                    printf("OFF:%X:%X\n", i, chInstrument[i]);
                                     if(music[filePos] < 0x80){ //note argument provided?
                                         temp[0] = read_byte();
                                         chPointer[i]++;
@@ -596,6 +597,20 @@ void mloop(float* out){
                                                 slotFree[slot] = 0;
                                                 slotADSRState[slot] = 3;
                                                 slotADSRVol[slot] = slotSustain[slot];
+                                                if((slotInstType[slot] & 7) == 1){
+                                                    gb_write(0x12, 0);
+                                                    gb_write(0x13, 0);
+                                                    gb_write(0x14, 0x80);
+                                                }else if((slotInstType[slot] & 7) == 2){
+                                                    gb_write(0x17, 0);
+                                                    gb_write(0x18, 0);
+                                                    gb_write(0x19, 0x80);
+                                                }else if((slotInstType[slot] & 7) == 3){
+                                                    gb_write(0x1A, 0);
+                                                }else if((slotInstType[slot] & 7) == 4){
+                                                    gb_write(0x21, 0);
+                                                    gb_write(0x23, 0);
+                                                }
                                             }
                                         }
                                     }
@@ -699,6 +714,11 @@ void mloop(float* out){
                                                 sampleLoopLength[curSlot] = sampleEnd[curSlot] - sampleLoop[curSlot];
                                                 slotSamplePointer[curSlot] += 16;
                                             }else if((slotInstType[curSlot] & 7) < 3){ //PSG
+                                                slotAttack[curSlot] = music[slotKeyPointer[curSlot] + 8];
+                                                slotDecay[curSlot] = music[slotKeyPointer[curSlot] + 9];
+                                                slotSustain[curSlot] = music[slotKeyPointer[curSlot] + 10];
+                                                slotRelease[curSlot] = music[slotKeyPointer[curSlot] + 11];
+                                                printf("P : %d %d %d %d\n", slotAttack[curSlot], slotDecay[curSlot], slotSustain[curSlot], slotRelease[curSlot]);
                                                 sampleDone[curSlot] = true;
                                                 slotFree[curSlot] = true;
                                                 temp[0] = slotNote[curSlot];
@@ -707,12 +727,14 @@ void mloop(float* out){
                                                 if((slotInstType[curSlot] & 7) == 1){
                                                     gb_write(0x10, music[slotKeyPointer[curSlot] + 3]);
                                                     gb_write(0x11, (music[slotKeyPointer[curSlot] + 4] << 6) + music[slotKeyPointer[curSlot] + 2]);
-                                                    gb_write(0x12, (music[slotKeyPointer[curSlot] + 10] << 4) + (music[slotKeyPointer[curSlot] + 9] & 0x0F));
+                                                    gb_write(0x12, (slotNoteVel[curSlot] & 0xF0) + (chVol[i] >> 4));
+                                                    //gb_write(0x12, ((chVol[i] << 4) & 0xF0) + (chVol[i] >> 4));
                                                     gb_write(0x13, (freqTableGB[temp[0]] & 0xFF));
                                                     gb_write(0x14, 0x80 | temp[1] | (freqTableGB[temp[0]] >> 8));
                                                 }else{
                                                     gb_write(0x16, (music[slotKeyPointer[curSlot] + 4] << 6) + music[slotKeyPointer[curSlot] + 2]);
-                                                    gb_write(0x17, (music[slotKeyPointer[curSlot] + 10] << 4) + (music[slotKeyPointer[curSlot] + 9] & 0x0F));
+                                                    gb_write(0x17, (slotNoteVel[curSlot] & 0xF0) + (chVol[i] >> 4));
+                                                    //gb_write(0x17,  ((chVol[i] << 4) & 0xF0) + (chVol[i] >> 4));
                                                     gb_write(0x18, (freqTableGB[temp[0]] & 0xFF));
                                                     gb_write(0x19, 0x80 | temp[1] | (freqTableGB[temp[0]] >> 8));
                                                 }
@@ -740,6 +762,7 @@ void mloop(float* out){
                                                 sampleLoopLength[curSlot] = 16.0f;
                                                 slotSamplePointer[curSlot] = music[slotKeyPointer[curSlot] + 4] * 0x10;*/
                                             }else if((slotInstType[curSlot] & 7) == 3){ //Wav
+                                                //printf("W %X : %X %X %X %X\n", slotNoteLen[curSlot], chVol[i], slotNoteVel[curSlot], slotKeyPointer[curSlot], filePos);
                                                 sampleDone[curSlot] = true;
                                                 slotFree[curSlot] = true;
                                                 temp[0] = slotNote[curSlot];
@@ -774,10 +797,17 @@ void mloop(float* out){
                                                 sampleLoopLength[curSlot] = 32.0f;
                                                 slotWavNibble[curSlot] = 0;*/
                                             }else if((slotInstType[curSlot] & 7) == 4){ //Noise
+                                                slotAttack[curSlot] = music[slotKeyPointer[curSlot] + 8];
+                                                slotDecay[curSlot] = music[slotKeyPointer[curSlot] + 9];
+                                                slotSustain[curSlot] = music[slotKeyPointer[curSlot] + 10];
+                                                slotRelease[curSlot] = music[slotKeyPointer[curSlot] + 11];
+                                                printf("N : %d %d %d %d\n", slotAttack[curSlot], slotDecay[curSlot], slotSustain[curSlot], slotRelease[curSlot]);
                                                 sampleDone[curSlot] = true;
                                                 slotFree[curSlot] = true;
-                                                gb_write(0x21,0xC1);//for testing
-                                                gb_write(0x23,0xFF);
+                                                if(music[slotKeyPointer[curSlot] + 2] > 0) temp[1] = 0x40;
+                                                gb_write(0x21, (slotNoteVel[curSlot] & 0xF0) + (chVol[i] >> 4));//for testing
+                                                //gb_write(0x22,0xC1);
+                                                gb_write(0x23, 0x80 | temp[0]);
                                             /*
                                                 slotPitchFill[curSlot] = slotPitch[curSlot] = 1; //FREQ_TABLE[(music[slotKeyPointer[curSlot] + 1] + 12) << 7];
                                                 sampleDone[curSlot] = false;
@@ -851,6 +881,20 @@ void mloop(float* out){
                         slotFree[i] = 0;
                         slotADSRState[i] = 3;
                         slotADSRVol[i] = slotSustain[i];
+                        if((slotInstType[i] & 7) == 1){
+                            gb_write(0x12, 0);
+                            gb_write(0x13, 0);
+                            gb_write(0x14, 0x80);
+                        }else if((slotInstType[i] & 7) == 2){
+                            gb_write(0x17, 0);
+                            gb_write(0x18, 0);
+                            gb_write(0x19, 0x80);
+                        }else if((slotInstType[i] & 7) == 3){
+                            gb_write(0x1A, 0);
+                        }else if((slotInstType[i] & 7) == 4){
+                            gb_write(0x21, 0);
+                            gb_write(0x23, 0);
+                        }
                     }
                 }
             }
