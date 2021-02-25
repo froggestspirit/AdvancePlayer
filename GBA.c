@@ -573,7 +573,7 @@ void mloop(float* out){
                                     lastCommand[i] = 0xCD;
                                 break;
                                 case 0xCE: //Note Off
-                                    printf("OFF:%X:%X\n", i, chInstrument[i]);
+                                    //printf("OFF:%X:%X\n", i, chInstrument[i]);
                                     if(music[filePos] < 0x80){ //note argument provided?
                                         temp[0] = read_byte();
                                         chPointer[i]++;
@@ -718,23 +718,30 @@ void mloop(float* out){
                                                 slotDecay[curSlot] = music[slotKeyPointer[curSlot] + 9];
                                                 slotSustain[curSlot] = music[slotKeyPointer[curSlot] + 10];
                                                 slotRelease[curSlot] = music[slotKeyPointer[curSlot] + 11];
-                                                printf("P : %d %d %d %d\n", slotAttack[curSlot], slotDecay[curSlot], slotSustain[curSlot], slotRelease[curSlot]);
+                                                //printf("N : %X %X %X %X\n", music[slotKeyPointer[curSlot] + 8], music[slotKeyPointer[curSlot] + 9], music[slotKeyPointer[curSlot] + 10], music[slotKeyPointer[curSlot] + 11]);
                                                 sampleDone[curSlot] = true;
                                                 slotFree[curSlot] = true;
                                                 temp[0] = slotNote[curSlot];
                                                 temp[1] = 0;
+                                                unsigned int tempVolR = (slotNoteVel[curSlot] * 0x80 * chPanR[i]) >> 0xE;
+                                                unsigned int tempVolL = (slotNoteVel[curSlot] * 0x7F * chPanL[i]) >> 0xE;
+                                                if(tempVolR > 0xFF) tempVolR = 0xFF;
+                                                if(tempVolL > 0xFF) tempVolL = 0xFF;
+                                                unsigned int envGoal = (tempVolL + tempVolR) >> 4;
+                                                if(envGoal > 0x0F) envGoal = 0x0F;
+                                                unsigned char susGoal = (envGoal * ((unsigned int)slotSustain[curSlot]) + 15) >> 4;
                                                 if(music[slotKeyPointer[curSlot] + 2] > 0) temp[1] = 0x40;
                                                 if((slotInstType[curSlot] & 7) == 1){
+                                                    //printf("P1 : %X %X %X %X : %X %X : %X\n", chVol[curSlot], slotNoteVel[curSlot], chPanL[i], chPanR[i], tempVolL, tempVolR, susGoal);
                                                     gb_write(0x10, music[slotKeyPointer[curSlot] + 3]);
                                                     gb_write(0x11, (music[slotKeyPointer[curSlot] + 4] << 6) + music[slotKeyPointer[curSlot] + 2]);
-                                                    gb_write(0x12, (slotNoteVel[curSlot] & 0xF0) + (chVol[i] >> 4));
-                                                    //gb_write(0x12, ((chVol[i] << 4) & 0xF0) + (chVol[i] >> 4));
+                                                    gb_write(0x12, susGoal << 4);
                                                     gb_write(0x13, (freqTableGB[temp[0]] & 0xFF));
                                                     gb_write(0x14, 0x80 | temp[1] | (freqTableGB[temp[0]] >> 8));
                                                 }else{
+                                                    //printf("P2 : %X %X %X %X : %X %X : %X\n", chVol[curSlot], slotNoteVel[curSlot], chPanL[i], chPanR[i], tempVolL, tempVolR, susGoal);
                                                     gb_write(0x16, (music[slotKeyPointer[curSlot] + 4] << 6) + music[slotKeyPointer[curSlot] + 2]);
-                                                    gb_write(0x17, (slotNoteVel[curSlot] & 0xF0) + (chVol[i] >> 4));
-                                                    //gb_write(0x17,  ((chVol[i] << 4) & 0xF0) + (chVol[i] >> 4));
+                                                    gb_write(0x17, susGoal << 4);
                                                     gb_write(0x18, (freqTableGB[temp[0]] & 0xFF));
                                                     gb_write(0x19, 0x80 | temp[1] | (freqTableGB[temp[0]] >> 8));
                                                 }
@@ -801,13 +808,21 @@ void mloop(float* out){
                                                 slotDecay[curSlot] = music[slotKeyPointer[curSlot] + 9];
                                                 slotSustain[curSlot] = music[slotKeyPointer[curSlot] + 10];
                                                 slotRelease[curSlot] = music[slotKeyPointer[curSlot] + 11];
-                                                printf("N : %d %d %d %d\n", slotAttack[curSlot], slotDecay[curSlot], slotSustain[curSlot], slotRelease[curSlot]);
                                                 sampleDone[curSlot] = true;
                                                 slotFree[curSlot] = true;
+                                                temp[1] = 0;
+                                                unsigned int tempVolR = (slotNoteVel[curSlot] * 0x80 * chPanR[i]) >> 0xE;
+                                                unsigned int tempVolL = (slotNoteVel[curSlot] * 0x7F * chPanL[i]) >> 0xE;
+                                                if(tempVolR > 0xFF) tempVolR = 0xFF;
+                                                if(tempVolL > 0xFF) tempVolL = 0xFF;
+                                                unsigned int envGoal = (tempVolL + tempVolR) >> 4;
+                                                if(envGoal > 0x0F) envGoal = 0x0F;
+                                                unsigned char susGoal = (envGoal * ((unsigned int)slotSustain[curSlot]) + 15) >> 4;
                                                 if(music[slotKeyPointer[curSlot] + 2] > 0) temp[1] = 0x40;
-                                                gb_write(0x21, (slotNoteVel[curSlot] & 0xF0) + (chVol[i] >> 4));//for testing
+                                                //printf("NS : %X %X %X %X : %X %X : %X\n", chVol[curSlot], slotNoteVel[curSlot], chPanL[i], chPanR[i], tempVolL, tempVolR, susGoal);
+                                                gb_write(0x21, susGoal);//for testing
                                                 //gb_write(0x22,0xC1);
-                                                gb_write(0x23, 0x80 | temp[0]);
+                                                gb_write(0x23, 0x80 | temp[1]);
                                             /*
                                                 slotPitchFill[curSlot] = slotPitch[curSlot] = 1; //FREQ_TABLE[(music[slotKeyPointer[curSlot] + 1] + 12) << 7];
                                                 sampleDone[curSlot] = false;
